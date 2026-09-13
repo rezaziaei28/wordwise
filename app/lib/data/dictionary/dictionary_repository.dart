@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:sqlite3/sqlite3.dart';
 
 import '../../domain/models.dart';
@@ -68,6 +70,11 @@ class DictionaryRepository {
       LIMIT ?
     ''', [like, like, q, limit]).map(_word).toList();
   }
+
+  /// Frequency weight (10^zipf) per word id, for coverage estimates.
+  Map<int, double> frequencyWeights() => {
+        for (final r in _db.select('SELECT id, zipf FROM word')) r['id'] as int: math.pow(10, (r['zipf'] as num).toDouble()).toDouble(),
+      };
 
   /// `n` random words from a band, for calibration.
   List<Word> sampleBand(int band, int n) =>

@@ -16,6 +16,8 @@ class StatsData {
     required this.highestBand,
     required this.retiredPerBand,
     required this.totalWords,
+    required this.knownFraction,
+    required this.textCoverage,
   });
 
   final Map<Grade, int> today;
@@ -27,6 +29,13 @@ class StatsData {
   /// index 0 = band 1
   final List<int> retiredPerBand;
   final int totalWords;
+
+  /// retired / total words.
+  final double knownFraction;
+
+  /// Frequency-weighted share of running text made of retired words
+  /// (relative to the 40K list; knowing the top 5K already covers ~93 %).
+  final double textCoverage;
 }
 
 final statsProvider = FutureProvider<StatsData>((ref) async {
@@ -44,6 +53,9 @@ final statsProvider = FutureProvider<StatsData>((ref) async {
     final b = (id - 1) ~/ 1000;
     if (b < bands) perBand[b]++;
   }
+  final weights = ref.watch(dictionaryProvider).frequencyWeights();
+  final totalWeight = weights.values.fold(0.0, (a, b) => a + b);
+  final knownWeight = retiredIds.fold(0.0, (a, id) => a + (weights[id] ?? 0));
   final learningIds = await repo.idsByState(ProgressState.learning, offset: 0, limit: 1 << 20);
   final highest = [...retiredIds, ...learningIds].fold<int>(0, (m, id) => id > m ? id : m);
   return StatsData(
@@ -54,6 +66,8 @@ final statsProvider = FutureProvider<StatsData>((ref) async {
     highestBand: highest == 0 ? 0 : (highest - 1) ~/ 1000 + 1,
     retiredPerBand: perBand,
     totalWords: total,
+    knownFraction: total == 0 ? 0 : retiredIds.length / total,
+    textCoverage: totalWeight == 0 ? 0 : knownWeight / totalWeight,
   );
 });
 
@@ -72,6 +86,8 @@ class StatsScreen extends ConsumerWidget {
         data: (s) => ListView(
           padding: const EdgeInsets.all(20),
           children: [
+            _KnownHero(stats: s),
+            const SizedBox(height: 24),
             Text('Today', style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             Row(
@@ -91,9 +107,7 @@ class StatsScreen extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Text('Highest band touched: ${s.highestBand} of ${s.retiredPerBand.length} · '
-                '${(s.retired / s.totalWords * 100).toStringAsFixed(1)} % of all words retired',
-                style: theme.textTheme.bodyMedium),
+            Text('Highest band touched: ${s.highestBand} of ${s.retiredPerBand.length}', style: theme.textTheme.bodyMedium),
             const SizedBox(height: 24),
             Text('Retired per band (1,000 words each)', style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
@@ -123,6 +137,56 @@ class StatsScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// "You know 12.5 % of the words" plus the share of everyday text that is.
+class _KnownHero extends StatelessWidget {
+  const _KnownHero({required this.stats});
+  final StatsData stats;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final pct = stats.knownFraction * 100;
+    final pctText = pct >= 10 ? pct.toStringAsFixed(0) : pct.toStringAsFixed(1);
+    return Card(
+      color: scheme.primaryContainer,
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text('$pctText %', style: theme.textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w800, color: scheme.onPrimaryContainer)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text('of ${_thousands(stats.totalWords)} words known\n${_thousands(stats.retired)} retired',
+                      style: theme.textTheme.bodyMedium?.copyWith(color: scheme.onPrimaryContainer)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(value: stats.knownFraction, minHeight: 8, backgroundColor: scheme.onPrimaryContainer.withValues(alpha: 0.12)),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '≈ ${(stats.textCoverage * 100).toStringAsFixed(0)} % of everyday English text is made of words you know',
+              style: theme.textTheme.bodySmall?.copyWith(color: scheme.onPrimaryContainer),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static String _thousands(int n) => n.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]},');
 }
 
 class _Tile extends StatelessWidget {
