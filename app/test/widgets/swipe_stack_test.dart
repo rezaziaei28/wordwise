@@ -53,19 +53,19 @@ void main() {
 
   testWidgets('a hint with the outcome and its meaning shows while dragging', (tester) async {
     await tester.pumpWidget(harness());
-    expect(find.text('KNOW IT'), findsNothing);
+    expect(find.text('EASY'), findsNothing);
     final start = tester.getCenter(find.text('current'));
     final gesture = await tester.startGesture(start);
     await gesture.moveBy(const Offset(40, 0));
     await tester.pump();
-    expect(find.text('KNOW IT'), findsOneWidget);
+    expect(find.text('EASY'), findsOneWidget);
     expect(find.text('Never show again'), findsOneWidget);
     await gesture.moveBy(const Offset(100, 0)); // past 35 % of 300 px
     await tester.pump();
     expect(find.text('release'), findsOneWidget);
     await gesture.moveTo(start + const Offset(0, 60));
     await tester.pump();
-    expect(find.text('HAD ISSUES'), findsOneWidget);
+    expect(find.text('SHAKY'), findsOneWidget);
     await gesture.up();
     await tester.pumpAndSettle();
     expect(swipes, isEmpty);

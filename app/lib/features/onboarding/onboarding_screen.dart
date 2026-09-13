@@ -194,7 +194,7 @@ class _Summary extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             upTo == 0
-                ? 'You will start at word #1. Swiping "Know it" is fast — the first few hundred will fly by.'
+                ? 'You will start at word #1. Swiping "Easy" is fast — the first few hundred will fly by.'
                 : 'Retire words 1–${upTo * 1000} now and start at #${upTo * 1000 + 1}? You can undo this in Settings, and any word can be un-retired from the list.',
             style: theme.textTheme.bodyLarge,
             textAlign: TextAlign.center,

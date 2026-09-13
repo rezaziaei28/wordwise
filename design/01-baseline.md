@@ -48,7 +48,7 @@ prep (IELTS/TOEFL word lists), classroom use, teachers.
  │      rank #9,412 · adjective                   │
  └────────────────────────────────────────────────┘
         ◄── swipe          swipe ──►         swipe ▼
-     "Didn't know"        "Know it"        "Had issues"
+      "No idea"            "Easy"           "Shaky"
      repeat often       never show again   repeat later
 ```
 
@@ -61,24 +61,24 @@ in their head, then flips to check, then grades.
 
 | Swipe | Meaning | What the app does |
 |-------|---------|-------------------|
-| **Know it** | "I'm sure I know the meaning and pronunciation." | Word is *retired*. Never shown again unless the user un-retires it from the word list. |
-| **Had issues** | "I sort of knew it — wrong pronunciation, or I hesitated on the meaning." | Word is scheduled again after a *moderate* interval that grows each time it is graded this way. |
-| **Didn't know** | "New to me / I was wrong." | Word is scheduled again *soon* and interval resets to the shortest step. |
+| **Easy** | "I'm sure I know the meaning and pronunciation." | Word is *retired*. Never shown again unless the user un-retires it from the word list. |
+| **Shaky** | "I sort of knew it — wrong pronunciation, or I hesitated on the meaning." | Word is scheduled again after a *moderate* interval that grows each time it is graded this way. |
+| **No idea** | "New to me / I was wrong." | Word is scheduled again *soon* and interval resets to the shortest step. |
 
-Swipe direction mapping (right = know, left = didn't know, down = had issues)
+Swipe direction mapping (right = easy, left = no idea, down = shaky)
 is a UI detail for Phase 4; the three-outcome model is the requirement.
 
 ### Ordering: what card comes next?
 
 Two queues, merged:
 
-1. **Review queue** — words previously graded *Had issues* or *Didn't know*
+1. **Review queue** — words previously graded *Shaky* or *No idea*
    whose due time has passed. These always come first.
 2. **New-word queue** — words never seen, in **frequency-rank order** (most
    common first). This is the heart of the product: the learner meets words in
    the order in which they will actually encounter them in the wild.
 
-Because an intermediate learner will swipe "Know it" on the first several
+Because an intermediate learner will swipe "Easy" on the first several
 thousand words, the app must make that fast: calibration at first launch
 (§6) and, during review, the **streak rule** (D-010) — ten *know* grades in
 a row skip the next 100+ unseen words, which are mixed back in later once
@@ -90,10 +90,10 @@ We deliberately do **not** copy Anki's SM-2 wholesale. Three-outcome grading
 plus a "retire" action gives a simpler model:
 
 - Each active word has `interval` (days) and `due` (timestamp).
-- *Didn't know* → `interval = 1 day` (first time: ~10 minutes, i.e. later in the
+- *No idea* → `interval = 1 day` (first time: ~10 minutes, i.e. later in the
   same session), `due = now + interval`.
-- *Had issues* → `interval = max(1, interval) × 2.5`, `due = now + interval`.
-- *Know it* → retired. A word graded *Know it* right after a *Didn't know* is
+- *Shaky* → `interval = max(1, interval) × 2.5`, `due = now + interval`.
+- *Easy* → retired. A word graded *Easy* right after a *No idea* is
   still retired — we trust the adult (D: honesty assumption).
 - Optional later: a "leech" rule (word failed N times → shown with extra help).
 
@@ -159,13 +159,13 @@ list is dominated by rare, technical and proper-noun-ish items. We keep the
 must measure how clean the tail is — it may be that "40K" becomes "35K clean
 lemmas". This is flagged as an open question, not silently changed.
 
-**Intermediate learners know the first few thousand words.** Swiping "Know it"
+**Intermediate learners know the first few thousand words.** Swiping "Easy"
 5,000 times is a terrible first hour. Mitigations, in order of preference:
 1. *Calibration on first launch:* show ~10 sample words from each band; if the
    user knows all samples from bands 1–4, offer to retire everything below
    band 5 in bulk (reversible from the word list).
 2. Let the user pick a starting rank manually ("start at word #3,000").
-3. Make "Know it" the cheapest gesture and show a running streak so the fast
+3. Make "Easy" the cheapest gesture and show a running streak so the fast
    phase still feels productive.
 
 **Trusting self-grading vs. helping honesty.** We don't test, but we can help:
@@ -173,7 +173,7 @@ the front shows only the word, so the user must recall before revealing. A
 future "say it" feature (speech recognition scoring) is compatible with this.
 
 **Meaning vs. pronunciation are graded together.** The prompt treats "wrong
-pronunciation" as *Had issues*. We keep a single grade to keep the swipe model
+pronunciation" as *Shaky*. We keep a single grade to keep the swipe model
 simple; per-dimension grading is noted as a possible later refinement.
 
 **Polysemy.** `run` has dozens of senses. The card shows the 1–3 most common

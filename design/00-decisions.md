@@ -129,3 +129,18 @@ Short architecture-decision records. Newest at the bottom.
 - **Result (2026-09-13 build):** 161 names, 8 abbreviations, 32 short
   words in the 40K list; 11,851 person names, 6,183 other names, 2,343
   abbreviations and 328 debris tokens excluded; cut moved to zipf 1.99.
+
+## D-012 · Grade wording: Easy / Shaky / No idea
+
+- **Context:** The original labels (*Know it*, *Had issues*, *Didn't know*)
+  were clumsy — "Had issues" reads like a bug report, and the three hints
+  were not parallel ("Never show again" next to "Repeat later").
+- **Decision:** The three outcomes are **Easy**, **Shaky** and **No idea**,
+  with parallel hints "Never show again", "Show again later" and
+  "Show again soon". One or two words each, so they fit the narrow grade
+  buttons and read well uppercased on the drag overlay.
+- **Consequences:** Wording lives only in `core/grade_style.dart`; the
+  buttons, drag overlay, onboarding legend and accessibility labels all
+  derive from it. The `Grade` enum values (`know`, `issues`, `unknown`) and
+  everything persisted in `review_log.grade` are unchanged — this is copy,
+  not a model change, so no migration.

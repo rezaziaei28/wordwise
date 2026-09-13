@@ -17,14 +17,14 @@ extension GradeStyle on Grade {
       };
 
   String get label => switch (this) {
-        Grade.know => 'Know it',
-        Grade.issues => 'Had issues',
-        Grade.unknown => "Didn't know",
+        Grade.know => 'Easy',
+        Grade.issues => 'Shaky',
+        Grade.unknown => 'No idea',
       };
 
   String get hint => switch (this) {
         Grade.know => 'Never show again',
-        Grade.issues => 'Repeat later',
-        Grade.unknown => 'Repeat soon',
+        Grade.issues => 'Show again later',
+        Grade.unknown => 'Show again soon',
       };
 }
