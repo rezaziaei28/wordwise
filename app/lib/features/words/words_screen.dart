@@ -6,7 +6,7 @@ import '../../core/providers.dart';
 import '../../core/word_providers.dart';
 import '../../domain/models.dart';
 
-enum WordFilter { all, learning, retired }
+enum WordFilter { all, learning, retired, skipped }
 
 const _pageSize = 100;
 
@@ -24,6 +24,8 @@ final wordPageProvider = FutureProvider.family<List<(Word, Progress?)>, (WordFil
       words = dict.byIds(await repo.idsByState(ProgressState.learning, offset: page * _pageSize, limit: _pageSize));
     case WordFilter.retired:
       words = dict.byIds(await repo.idsByState(ProgressState.retired, offset: page * _pageSize, limit: _pageSize));
+    case WordFilter.skipped:
+      words = dict.byIds(await repo.idsByState(ProgressState.skipped, offset: page * _pageSize, limit: _pageSize));
   }
   final progress = await repo.getMany(words.map((w) => w.id));
   return [for (final w in words) (w, progress[w.id])];
@@ -35,6 +37,7 @@ final wordCountProvider = FutureProvider.family<int, WordFilter>((ref, filter) a
     WordFilter.all => ref.watch(dictionaryProvider).count,
     WordFilter.learning => ref.watch(progressRepositoryProvider).countByState(ProgressState.learning),
     WordFilter.retired => ref.watch(progressRepositoryProvider).countByState(ProgressState.retired),
+    WordFilter.skipped => ref.watch(progressRepositoryProvider).countByState(ProgressState.skipped),
   };
 });
 
@@ -157,6 +160,7 @@ class ProgressIcon extends StatelessWidget {
     final p = progress;
     if (p == null) return Icon(Icons.circle_outlined, color: scheme.outlineVariant);
     if (p.isRetired) return const Icon(Icons.check_circle_rounded, color: Color(0xFF2E9E5B));
+    if (p.isSkipped) return Icon(Icons.fast_forward_rounded, color: scheme.outline);
     if (p.isDue(DateTime.now())) return const Icon(Icons.schedule_rounded, color: Color(0xFFD64545));
     return Icon(Icons.timelapse_rounded, color: scheme.primary);
   }

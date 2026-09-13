@@ -79,7 +79,10 @@ Two queues, merged:
    the order in which they will actually encounter them in the wild.
 
 Because an intermediate learner will swipe "Know it" on the first several
-thousand words, the app must make that fast (see §6, "calibration").
+thousand words, the app must make that fast: calibration at first launch
+(§6) and, during review, the **streak rule** (D-010) — ten *know* grades in
+a row skip the next 100+ unseen words, which are mixed back in later once
+the learner starts missing words.
 
 ### Scheduling (spaced repetition, simplified)
 

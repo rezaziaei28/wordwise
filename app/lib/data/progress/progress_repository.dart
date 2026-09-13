@@ -30,6 +30,7 @@ class LogEntry {
   static const bulkRetire = 'bulk_retire';
   static const unretire = 'unretire';
   static const retire = 'retire';
+  static const skip = 'skip';
 
   bool get isSwipe => Grade.values.any((g) => g.name == grade);
 }
@@ -168,7 +169,53 @@ class ProgressRepository {
     return rows.map(_log).toList();
   }
 
+  /// Most recent swipes, newest first.
+  Future<List<LogEntry>> recentSwipes({int limit = 50}) async {
+    final rows = await (db.select(db.reviewLogRows)
+          ..where((t) => t.grade.isIn(Grade.values.map((g) => g.name).toList()))
+          ..orderBy([(t) => OrderingTerm.desc(t.id)])
+          ..limit(limit))
+        .get();
+    return rows.map(_log).toList();
+  }
+
   // ---- writes ------------------------------------------------------------
+
+  /// Streak rule: mark unseen [words] as skipped in one transaction with one
+  /// log entry (grade `skip`, word ids in `after`).
+  Future<int> skipWords(List<Word> words, DateTime now) => db.transaction(() async {
+        final existing = await getMany(words.map((w) => w.id));
+        final fresh = words.where((w) => !existing.containsKey(w.id)).toList();
+        await db.batch((b) {
+          for (final w in fresh) {
+            b.insert(
+              db.progressRows,
+              _toCompanion(Progress(
+                wordId: w.id,
+                lemma: w.lemma,
+                state: ProgressState.skipped,
+                interval: Duration.zero,
+                dueAt: null,
+                seenCount: 0,
+                lapseCount: 0,
+                retiredBy: null,
+                updatedAt: now,
+              )),
+            );
+          }
+        });
+        if (fresh.isNotEmpty) {
+          await db.into(db.reviewLogRows).insert(ReviewLogRowsCompanion.insert(
+                wordId: fresh.first.id,
+                lemma: fresh.first.lemma,
+                grade: LogEntry.skip,
+                at: now.millisecondsSinceEpoch,
+                afterJson: jsonEncode({'word_ids': fresh.map((w) => w.id).toList()}),
+              ));
+        }
+        return fresh.length;
+      });
+
 
   /// Persist a swipe: upsert the progress row and append the log entry.
   Future<void> recordSwipe({required Progress? before, required Progress after, required Grade grade}) =>

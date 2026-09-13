@@ -84,6 +84,12 @@ class SettingsScreen extends ConsumerWidget {
             trailing: Text('${settings.newPerDay}'),
           ),
           SwitchListTile(title: const Text('Show IPA transcription'), value: settings.showIpa, onChanged: notifier.setShowIpa),
+          SwitchListTile(
+            title: const Text('Skip ahead on streaks'),
+            subtitle: const Text('10 known in a row jumps over the next 100+ words; they return once you start missing words'),
+            value: settings.skipAhead,
+            onChanged: notifier.setSkipAhead,
+          ),
           ListTile(
             title: const Text('Speech rate'),
             subtitle: Slider(value: settings.ttsRate, min: 0.25, max: 0.7, onChanged: notifier.setTtsRate),

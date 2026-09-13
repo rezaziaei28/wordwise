@@ -18,7 +18,7 @@ void main() {
   setUp(() {
     now = DateTime(2026, 9, 12, 9);
     container = ProviderContainer(overrides: [
-      dictionaryProvider.overrideWithValue(testDictionary(n: 100)),
+      dictionaryProvider.overrideWithValue(testDictionary(n: 2000)),
       progressDbProvider.overrideWithValue(ProgressDb(NativeDatabase.memory())),
       ttsProvider.overrideWithValue(Tts.noop()),
       clockProvider.overrideWithValue(() => now),
@@ -111,13 +111,98 @@ void main() {
 
   test('exhausts a small dictionary', () async {
     await container.read(settingsProvider.future);
-    await container.read(settingsProvider.notifier).setNewPerDay(500);
+    await container.read(settingsProvider.notifier).setNewPerDay(5000);
+    await container.read(settingsProvider.notifier).setSkipAhead(false);
     await state();
-    for (var i = 0; i < 100; i++) {
+    for (var i = 0; i < 2000; i++) {
       await ctrl().swipe(Grade.know);
     }
     final s = await state();
     expect(s.current, isNull);
     expect(s.exhausted, isTrue);
+  });
+
+  group('streak rule', () {
+    setUp(() async {
+      await container.read(settingsProvider.future);
+      await container.read(settingsProvider.notifier).setNewPerDay(5000);
+    });
+
+    test('ten knows in a row skip the next 100 words', () async {
+      await state();
+      for (var i = 0; i < 9; i++) {
+        await ctrl().swipe(Grade.know);
+      }
+      expect((await state()).streak, 9);
+      await ctrl().swipe(Grade.know);
+      final s = await state();
+      expect(s.lastSkip, (100, 111));
+      expect(s.current!.word.id, 111);
+      expect(s.streak, 0);
+      expect(await container.read(progressRepositoryProvider).countByState(ProgressState.skipped), 100);
+      expect((await container.read(progressRepositoryProvider).get(50))!.isSkipped, isTrue);
+    });
+
+    test('jumps grow while streaks continue and reset after a miss', () async {
+      await state();
+      for (var i = 0; i < 10; i++) {
+        await ctrl().swipe(Grade.know);
+      }
+      expect((await state()).lastSkip!.$1, 100);
+      for (var i = 0; i < 10; i++) {
+        await ctrl().swipe(Grade.know);
+      }
+      expect((await state()).lastSkip!.$1, 200);
+      await ctrl().swipe(Grade.issues);
+      for (var i = 0; i < 10; i++) {
+        await ctrl().swipe(Grade.know);
+      }
+      expect((await state()).lastSkip!.$1, 100, reason: 'a miss resets the growth');
+    });
+
+    test('a miss resets the streak; the streak survives a restart', () async {
+      await state();
+      for (var i = 0; i < 5; i++) {
+        await ctrl().swipe(Grade.know);
+      }
+      await ctrl().swipe(Grade.unknown);
+      expect((await state()).streak, 0);
+      for (var i = 0; i < 3; i++) {
+        await ctrl().swipe(Grade.know);
+      }
+      await ctrl().refresh();
+      expect((await state()).streak, 3);
+    });
+
+    test('skipped words are mixed back once the know-rate drops, and retire on know', () async {
+      await state();
+      for (var i = 0; i < 10; i++) {
+        await ctrl().swipe(Grade.know); // skips 11..110
+      }
+      // Now struggle: 20 fresh words, mostly unknown → frontier reached.
+      for (var i = 0; i < 20; i++) {
+        await ctrl().swipe(i % 3 == 0 ? Grade.know : Grade.unknown);
+      }
+      final seen = <int>[];
+      for (var i = 0; i < 40; i++) {
+        final s = await state();
+        seen.add(s.current!.word.id);
+        await ctrl().swipe(Grade.know);
+      }
+      final mixed = seen.where((id) => id >= 11 && id <= 110).toList();
+      expect(mixed, isNotEmpty, reason: 'skipped words come back');
+      expect(mixed, mixed.toList()..sort(), reason: 'easiest first');
+      expect((await container.read(progressRepositoryProvider).get(mixed.first))!.isRetired, isTrue);
+      expect((await state()).lastSkip, isNull, reason: 'no new jumps while mixing');
+    });
+
+    test('can be switched off', () async {
+      await container.read(settingsProvider.notifier).setSkipAhead(false);
+      await state();
+      for (var i = 0; i < 12; i++) {
+        await ctrl().swipe(Grade.know);
+      }
+      expect((await state()).current!.word.id, 13);
+    });
   });
 }

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/grade_style.dart';
 import '../../domain/models.dart';
+import '../../domain/queue_policy.dart';
 import 'review_controller.dart';
 import 'widgets/swipe_stack.dart';
 import 'widgets/word_card.dart';
@@ -23,6 +24,20 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     final state = ref.watch(reviewControllerProvider);
     final ctrl = ref.read(reviewControllerProvider.notifier);
     final theme = Theme.of(context);
+
+    ref.listen(reviewControllerProvider, (prev, next) {
+      final skip = next.value?.lastSkip;
+      if (skip != null && skip != prev?.value?.lastSkip) {
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(SnackBar(
+            content: Text('10 in a row — skipped ${skip.$1} words ahead to #${skip.$2}. They come back later if needed.'),
+            duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.fromLTRB(20, 0, 20, 96), // above the grade buttons
+          ));
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -55,9 +70,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                         current: WordCard(
                           key: ValueKey('card-${s.current!.word.id}'),
                           word: s.current!.word,
+                          tag: _tag(s.current!),
                           onLongPress: () => context.push('/words/${s.current!.word.id}'),
                         ),
-                        next: s.next == null ? null : WordCard(key: ValueKey('card-${s.next!.word.id}'), word: s.next!.word, interactive: false),
+                        next: s.next == null ? null : WordCard(key: ValueKey('card-${s.next!.word.id}'), word: s.next!.word, tag: _tag(s.next!), interactive: false),
                         onSwipe: ctrl.swipe,
                       ),
               ),
@@ -86,6 +102,13 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   }
 }
 
+String? _tag(QueueItem item) {
+  final p = item.progress;
+  if (p == null) return null;
+  if (p.isSkipped) return 'skipped earlier';
+  return 'review';
+}
+
 class _Header extends StatelessWidget {
   const _Header({required this.state});
   final ReviewState state;
@@ -107,6 +130,12 @@ class _Header extends StatelessWidget {
           stat('today', state.doneToday),
           stat('new today', state.newToday),
           stat('due', state.dueNow),
+          Column(
+            children: [
+              Text('${state.streak.clamp(0, 10)}/10', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, color: state.streak > 0 ? Grade.know.color : null)),
+              Text('streak', style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outline)),
+            ],
+          ),
         ],
       ),
     );

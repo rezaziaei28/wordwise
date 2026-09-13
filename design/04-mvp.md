@@ -44,6 +44,11 @@ layouts (works, not optimised), localisation of the UI.
 - A9. Soft cap: when today's new-word allowance is spent and no review is
   due, the screen shows "Daily goal reached" with a "Keep going" button.
 - A10. Killing and relaunching the app resumes with the same next card.
+- A11. Streak rule (D-010): the header shows the streak; the tenth *know* in
+  a row on fresh words jumps ahead (toast names the count and new rank);
+  jumps grow 100→200→400→800→1000 and reset on a miss; skipped words return
+  once the know-rate on the last 20 fresh words is below 70 %, carry a
+  "skipped earlier" chip, and retire on *know*. Off switch in Settings.
 
 ### 2.2 Word list (`/words`, `/words/:id`) — F5
 

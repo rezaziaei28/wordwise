@@ -88,3 +88,20 @@ Short architecture-decision records. Newest at the bottom.
   `build_runner` runs only drift. Revisit when the toolchain moves to
   Dart ≥ 3.12 if the boilerplate becomes a burden.
 - **Consequences:** No `@riverpod` annotations; `riverpod_lint` also dropped.
+
+## D-010 · Streak rule: skip ahead, mix back later
+
+- **Context:** Calibration samples 40 words and cannot find an advanced
+  learner's real frontier; swiping "know" through thousands of easy words
+  is the worst part of the product (baseline §6).
+- **Decision:** After 10 consecutive *know* grades on fresh words, the next
+  100 unseen words are marked **skipped** (not shown, not counted as known).
+  Consecutive jumps without a miss double (100, 200, 400, 800, max 1,000);
+  any other grade resets the streak and the growth. Once the learner's
+  know-rate on the last 20 fresh words drops below 70 %, skipped words are
+  mixed back in — easiest first, one per four new words — and retire on
+  *know* or enter learning otherwise. No new jumps happen while mixing.
+  A toast announces each jump; the rule can be disabled in Settings.
+- **Consequences:** New `ProgressState.skipped`; stats and coverage exclude
+  skipped words and report their count; the word list has a *skipped*
+  filter. Constants live in `domain/pacing.dart` (`PacingConfig`).

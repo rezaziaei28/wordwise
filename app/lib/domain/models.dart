@@ -73,7 +73,8 @@ enum Grade {
   unknown,
 }
 
-enum ProgressState { learning, retired }
+/// `skipped`: jumped over by the streak rule, never actually graded.
+enum ProgressState { learning, retired, skipped }
 
 /// How a word got retired; `bulk` entries can be undone as a group.
 enum RetiredBy { swipe, bulk, list }
@@ -107,6 +108,7 @@ class Progress {
   final DateTime updatedAt;
 
   bool get isRetired => state == ProgressState.retired;
+  bool get isSkipped => state == ProgressState.skipped;
   bool isDue(DateTime now) =>
       state == ProgressState.learning && dueAt != null && !dueAt!.isAfter(now);
 

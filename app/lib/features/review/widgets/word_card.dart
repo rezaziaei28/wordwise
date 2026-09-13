@@ -11,9 +11,12 @@ import '../../../domain/models.dart';
 /// The flashcard. Front: the word only. Tap flips to the back with IPA,
 /// speaker, senses, forms and rank. The back scrolls; the front never does.
 class WordCard extends ConsumerStatefulWidget {
-  const WordCard({super.key, required this.word, this.interactive = true, this.initiallyFlipped = false, this.onLongPress});
+  const WordCard({super.key, required this.word, this.interactive = true, this.initiallyFlipped = false, this.onLongPress, this.tag});
 
   final Word word;
+
+  /// Small label on the front, e.g. "review" or "skipped earlier".
+  final String? tag;
   final bool interactive;
   final bool initiallyFlipped;
   final VoidCallback? onLongPress;
@@ -61,7 +64,7 @@ class _WordCardState extends ConsumerState<WordCard> with SingleTickerProviderSt
               ..rotateY(angle),
             child: showBack
                 ? Transform(alignment: Alignment.center, transform: Matrix4.identity()..rotateY(math.pi), child: _Back(word: widget.word))
-                : _Front(word: widget.word),
+                : _Front(word: widget.word, tag: widget.tag),
           );
         },
       ),
@@ -92,8 +95,9 @@ class _Shell extends StatelessWidget {
 }
 
 class _Front extends StatelessWidget {
-  const _Front({required this.word});
+  const _Front({required this.word, this.tag});
   final Word word;
+  final String? tag;
 
   @override
   Widget build(BuildContext context) {
@@ -110,6 +114,8 @@ class _Front extends StatelessWidget {
                 const SizedBox(width: 8),
                 if (word.isProper) const _Chip(text: 'name'),
                 if (word.isAbbrev) const _Chip(text: 'abbreviation'),
+                const Spacer(),
+                if (tag != null) _Chip(text: tag!),
               ],
             ),
             Expanded(

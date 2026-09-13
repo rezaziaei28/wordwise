@@ -18,6 +18,7 @@ class StatsData {
     required this.totalWords,
     required this.knownFraction,
     required this.textCoverage,
+    required this.skipped,
   });
 
   final Map<Grade, int> today;
@@ -36,6 +37,9 @@ class StatsData {
   /// Frequency-weighted share of running text made of retired words
   /// (relative to the 40K list; knowing the top 5K already covers ~93 %).
   final double textCoverage;
+
+  /// Jumped over by the streak rule, not yet verified.
+  final int skipped;
 }
 
 final statsProvider = FutureProvider<StatsData>((ref) async {
@@ -68,6 +72,7 @@ final statsProvider = FutureProvider<StatsData>((ref) async {
     totalWords: total,
     knownFraction: total == 0 ? 0 : retiredIds.length / total,
     textCoverage: totalWeight == 0 ? 0 : knownWeight / totalWeight,
+    skipped: await repo.countByState(ProgressState.skipped),
   );
 });
 
@@ -107,7 +112,9 @@ class StatsScreen extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Text('Highest band touched: ${s.highestBand} of ${s.retiredPerBand.length}', style: theme.textTheme.bodyMedium),
+            Text('Highest band touched: ${s.highestBand} of ${s.retiredPerBand.length}'
+                '${s.skipped > 0 ? ' · ${s.skipped} words skipped ahead, to be checked later' : ''}',
+                style: theme.textTheme.bodyMedium),
             const SizedBox(height: 24),
             Text('Retired per band (1,000 words each)', style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),

@@ -11,6 +11,7 @@ abstract final class SettingKeys {
   static const theme = 'theme';
   static const onboarded = 'onboarded';
   static const nextNewRank = 'next_new_rank';
+  static const skipAhead = 'skip_ahead';
 }
 
 class Settings {
@@ -20,6 +21,7 @@ class Settings {
     this.ttsRate = 0.45,
     this.themeMode = ThemeMode.system,
     this.onboarded = false,
+    this.skipAhead = true,
   });
 
   final int newPerDay;
@@ -28,12 +30,16 @@ class Settings {
   final ThemeMode themeMode;
   final bool onboarded;
 
-  Settings copyWith({int? newPerDay, bool? showIpa, double? ttsRate, ThemeMode? themeMode, bool? onboarded}) => Settings(
+  /// Streak rule on/off (D-010).
+  final bool skipAhead;
+
+  Settings copyWith({int? newPerDay, bool? showIpa, double? ttsRate, ThemeMode? themeMode, bool? onboarded, bool? skipAhead}) => Settings(
         newPerDay: newPerDay ?? this.newPerDay,
         showIpa: showIpa ?? this.showIpa,
         ttsRate: ttsRate ?? this.ttsRate,
         themeMode: themeMode ?? this.themeMode,
         onboarded: onboarded ?? this.onboarded,
+        skipAhead: skipAhead ?? this.skipAhead,
       );
 
   static Settings fromMap(Map<String, String> m) => Settings(
@@ -42,6 +48,7 @@ class Settings {
         ttsRate: double.tryParse(m[SettingKeys.ttsRate] ?? '') ?? 0.45,
         themeMode: ThemeMode.values.asNameMap()[m[SettingKeys.theme]] ?? ThemeMode.system,
         onboarded: m[SettingKeys.onboarded] == '1',
+        skipAhead: m[SettingKeys.skipAhead] != '0',
       );
 }
 
@@ -61,6 +68,7 @@ class SettingsNotifier extends AsyncNotifier<Settings> {
   Future<void> setNewPerDay(int n) => _set(SettingKeys.newPerDay, '$n', state.requireValue.copyWith(newPerDay: n));
   Future<void> setShowIpa(bool v) => _set(SettingKeys.showIpa, v ? '1' : '0', state.requireValue.copyWith(showIpa: v));
   Future<void> setThemeMode(ThemeMode m) => _set(SettingKeys.theme, m.name, state.requireValue.copyWith(themeMode: m));
+  Future<void> setSkipAhead(bool v) => _set(SettingKeys.skipAhead, v ? '1' : '0', state.requireValue.copyWith(skipAhead: v));
   Future<void> setOnboarded() => _set(SettingKeys.onboarded, '1', state.requireValue.copyWith(onboarded: true));
   Future<void> setTtsRate(double r) async {
     await ref.read(ttsProvider).setRate(r);

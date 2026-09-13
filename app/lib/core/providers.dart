@@ -11,6 +11,7 @@ import '../data/dictionary/asset_installer.dart';
 import '../data/dictionary/dictionary_repository.dart';
 import '../data/progress/progress_db.dart';
 import '../data/progress/progress_repository.dart';
+import '../domain/pacing.dart';
 import '../domain/scheduler.dart';
 
 /// Opened once at startup (see `bootstrap` in app.dart) and overridden into
@@ -31,6 +32,8 @@ final progressDbProvider = Provider<ProgressDb>((ref) {
 final progressRepositoryProvider = Provider<ProgressRepository>((ref) => ProgressRepository(ref.watch(progressDbProvider)));
 
 final schedulerConfigProvider = Provider<SchedulerConfig>((ref) => const SchedulerConfig());
+
+final pacingConfigProvider = Provider<PacingConfig>((ref) => const PacingConfig());
 
 final clockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
 

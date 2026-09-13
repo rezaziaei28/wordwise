@@ -68,6 +68,7 @@ class WordDetailScreen extends ConsumerWidget {
   String _status(Progress? p) {
     if (p == null) return 'New — not seen yet';
     if (p.isRetired) return 'Retired (${p.retiredBy?.name ?? 'swipe'})';
+    if (p.isSkipped) return 'Skipped ahead — comes back once you start missing words';
     return 'Learning · seen ${p.seenCount}× · missed ${p.lapseCount}×';
   }
 
@@ -77,6 +78,7 @@ class WordDetailScreen extends ConsumerWidget {
         'unknown' => Icons.close_rounded,
         'retire' => Icons.check_circle_outline_rounded,
         'unretire' => Icons.undo_rounded,
+        'skip' => Icons.fast_forward_rounded,
         _ => Icons.layers_rounded,
       };
 
