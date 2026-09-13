@@ -1,0 +1,5 @@
+.venv/
+raw/
+build/*
+!build/.gitkeep
+__pycache__/
