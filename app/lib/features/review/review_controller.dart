@@ -62,6 +62,22 @@ class ReviewController extends AsyncNotifier<ReviewState> {
   bool _ignoreCap = false;
   int _nextNewRank = 0;
 
+  /// Queue mutations run one at a time. Without this, two swipes in flight
+  /// together (a double-tapped grade button) each top the queue up from the
+  /// same snapshot and enqueue the same words twice, so a word comes back
+  /// after it was already retired.
+  Future<void> _lock = Future.value();
+
+  /// A fill already in flight; a second caller joins it instead of starting
+  /// a second scan.
+  Future<void>? _filling;
+
+  Future<T> _serial<T>(Future<T> Function() action) {
+    final result = _lock.then((_) => action());
+    _lock = result.then((_) {}, onError: (_) {});
+    return result;
+  }
+
   // Streak rule (domain/pacing.dart): consecutive knows on fresh words, and
   // how many jumps happened without a miss in between (grows the jump).
   int _streak = 0;
@@ -147,7 +163,9 @@ class ReviewController extends AsyncNotifier<ReviewState> {
   }
 
   /// Top the queue up to a page: due reviews first, then new words by rank.
-  Future<void> _fill() async {
+  Future<void> _fill() => _filling ??= _fillOnce().whenComplete(() => _filling = null);
+
+  Future<void> _fillOnce() async {
     if (_queue.length >= _prefetchAt) return;
     final dict = ref.read(dictionaryProvider);
     final settings = await ref.read(settingsProvider.future);
@@ -157,7 +175,7 @@ class ReviewController extends AsyncNotifier<ReviewState> {
     final dueWords = {for (final w in dict.byIds(dueRows.map((p) => p.wordId))) w.id: w};
     final dueItems = [
       for (final p in dueRows)
-        if (dueWords[p.wordId] != null && !_inQueue.contains(p.wordId)) QueueItem(word: dueWords[p.wordId]!, progress: p),
+        if (dueWords[p.wordId] != null && _inQueue.add(p.wordId)) QueueItem(word: dueWords[p.wordId]!, progress: p),
     ];
 
     // `_nextNewRank` is the settled prefix: every rank ≤ it has a progress
@@ -177,7 +195,7 @@ class ReviewController extends AsyncNotifier<ReviewState> {
           continue;
         }
         contiguous = false;
-        if (!_inQueue.contains(w.id)) newItems.add(QueueItem(word: w, progress: null));
+        if (_inQueue.add(w.id)) newItems.add(QueueItem(word: w, progress: null));
         if (newItems.length >= _pageSize) break;
       }
       scan = candidates.last.rank;
@@ -208,7 +226,7 @@ class ReviewController extends AsyncNotifier<ReviewState> {
       final ids = await _repo.idsByState(ProgressState.skipped, offset: 0, limit: skippedWanted * 2);
       final rows = await _repo.getMany(ids);
       for (final w in dict.byIds(ids)) {
-        if (_inQueue.contains(w.id) || rows[w.id] == null) continue;
+        if (rows[w.id] == null || !_inQueue.add(w.id)) continue;
         skippedItems.add(QueueItem(word: w, progress: rows[w.id]));
         if (skippedItems.length >= skippedWanted) break;
       }
@@ -228,9 +246,17 @@ class ReviewController extends AsyncNotifier<ReviewState> {
       _queue.add(skippedItems[s]);
       _inQueue.add(skippedItems[s].word.id);
     }
+
+    // `_inQueue` mirrors the queue. Candidates reserved above but dropped by
+    // the daily cap are released here, so they are offered again next fill.
+    _inQueue
+      ..clear()
+      ..addAll(_queue.map((q) => q.word.id));
   }
 
-  Future<void> swipe(Grade grade) async {
+  Future<void> swipe(Grade grade) => _serial(() => _swipe(grade));
+
+  Future<void> _swipe(Grade grade) async {
     final item = _queue.isEmpty ? null : _queue.removeFirst();
     if (item == null) return;
     _inQueue.remove(item.word.id);
@@ -292,7 +318,9 @@ class ReviewController extends AsyncNotifier<ReviewState> {
     }
   }
 
-  Future<void> undo() async {
+  Future<void> undo() => _serial(_undo);
+
+  Future<void> _undo() async {
     final last = await _repo.lastSwipe();
     if (last == null) return;
     await _repo.revert(last);
@@ -310,7 +338,9 @@ class ReviewController extends AsyncNotifier<ReviewState> {
   }
 
   /// "Keep going" past the daily cap (A9).
-  Future<void> continuePastCap() async {
+  Future<void> continuePastCap() => _serial(_continuePastCap);
+
+  Future<void> _continuePastCap() async {
     _ignoreCap = true;
     await _fill();
     state = AsyncData(await _snapshot());

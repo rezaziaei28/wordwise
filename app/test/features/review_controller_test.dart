@@ -122,6 +122,51 @@ void main() {
     expect(s.exhausted, isTrue);
   });
 
+  group('overlapping swipes', () {
+    // A double-tapped grade button used to run two swipes at once; each
+    // topped the queue up from the same snapshot and enqueued the same
+    // words twice, so a word came back after it was already retired.
+    setUp(() async {
+      await container.read(settingsProvider.future);
+      await container.read(settingsProvider.notifier).setNewPerDay(5000);
+      await container.read(settingsProvider.notifier).setSkipAhead(false);
+    });
+
+    test('never show a word that is already retired', () async {
+      final repo = container.read(progressRepositoryProvider);
+      await state();
+      final shownRetired = <int>[];
+      Future<void> check() async {
+        final id = (await state()).current?.word.id;
+        if (id != null && (await repo.get(id))?.isRetired == true) shownRetired.add(id);
+      }
+
+      for (var i = 0; i < 40; i++) {
+        await check();
+        await Future.wait([ctrl().swipe(Grade.know), ctrl().swipe(Grade.know)]);
+      }
+      for (var i = 0; i < 100; i++) {
+        await check();
+        await ctrl().swipe(Grade.know);
+      }
+      expect(shownRetired, isEmpty);
+    });
+
+    test('the queue holds no duplicates', () async {
+      await state();
+      final seen = <int>[];
+      for (var i = 0; i < 30; i++) {
+        seen.add((await state()).current!.word.id);
+        await Future.wait([ctrl().swipe(Grade.know), ctrl().swipe(Grade.issues)]);
+      }
+      for (var i = 0; i < 60; i++) {
+        seen.add((await state()).current!.word.id);
+        await ctrl().swipe(Grade.know);
+      }
+      expect(seen.toSet(), hasLength(seen.length), reason: 'each card shown once');
+    });
+  });
+
   group('streak rule', () {
     setUp(() async {
       await container.read(settingsProvider.future);

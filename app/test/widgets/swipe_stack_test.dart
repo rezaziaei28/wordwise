@@ -71,6 +71,26 @@ void main() {
     expect(swipes, isEmpty);
   });
 
+  testWidgets('a second grade during the fly animation is ignored', (tester) async {
+    await tester.pumpWidget(harness());
+    final first = key.commit(Grade.know);
+    await tester.pump(const Duration(milliseconds: 60)); // mid-flight
+    final second = key.commit(Grade.unknown); // double tap
+    await tester.pumpAndSettle();
+    await Future.wait([first, second]);
+    expect(swipes, [Grade.know], reason: 'the card underneath is not graded unseen');
+  });
+
+  testWidgets('dragging during the fly animation does not grade again', (tester) async {
+    await tester.pumpWidget(harness());
+    final done = key.commit(Grade.know);
+    await tester.pump(const Duration(milliseconds: 60));
+    await tester.drag(find.text('current'), const Offset(-250, 0));
+    await tester.pumpAndSettle();
+    await done;
+    expect(swipes, [Grade.know]);
+  });
+
   testWidgets('buttons commit through the stack key', (tester) async {
     await tester.pumpWidget(harness());
     final done = key.commit(Grade.issues);

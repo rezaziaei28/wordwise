@@ -25,12 +25,14 @@ class _SwipeStackState extends State<SwipeStack> with SingleTickerProviderStateM
   late final AnimationController _anim = AnimationController(vsync: this, duration: const Duration(milliseconds: 220));
   Animation<Offset>? _fly;
   bool _committed = false; // top card has flown; hide until the next item arrives
+  bool _busy = false; // a commit is under way: ignore further input on this card
 
   @override
   void didUpdateWidget(covariant SwipeStack old) {
     super.didUpdateWidget(old);
     if (old.itemKey != widget.itemKey) {
       _committed = false;
+      _busy = false;
       _offset = Offset.zero;
       _fly = null;
       _anim.reset();
@@ -99,7 +101,8 @@ class _SwipeStackState extends State<SwipeStack> with SingleTickerProviderStateM
   /// Fly the card off in the grade's direction, then report it. Also used by
   /// the buttons below the stack.
   Future<void> commit(Grade grade, Size size) async {
-    if (_committed) return;
+    if (_busy) return;
+    _busy = true;
     final target = switch (grade) {
       Grade.know => Offset(size.width * 1.5, _offset.dy),
       Grade.unknown => Offset(-size.width * 1.5, _offset.dy),
@@ -135,8 +138,8 @@ class _SwipeStackState extends State<SwipeStack> with SingleTickerProviderStateM
               ),
             if (!_committed)
               GestureDetector(
-                onPanUpdate: (d) => setState(() => _offset += d.delta),
-                onPanEnd: (d) => _onEnd(d, size),
+                onPanUpdate: _busy ? null : (d) => setState(() => _offset += d.delta),
+                onPanEnd: _busy ? null : (d) => _onEnd(d, size),
                 child: Transform.translate(
                   offset: _offset,
                   child: Transform.rotate(
