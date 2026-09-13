@@ -36,7 +36,18 @@ WORD_RE = re.compile(r"^[A-Za-z][A-Za-z'\-]*\.?$")
 # always turn these into alt_of links, so we parse the gloss as a fallback.
 SPELLING_RE = re.compile(r"^(?P<prefix>[A-Za-z ,()\-]*?)\s*(?:standard |alternative )?(?:spelling|form) of (?P<target>[A-Za-z'\-]+)\.?$")
 US_PREFIX_RE = re.compile(r"\b(US|American|America)\b")
-
+# Sense categories / glosses that mark a person name, and the ones that make
+# a name notable enough to keep as vocabulary (D-011).
+GIVEN_RE = re.compile(r"given names?|diminutive of|pet form of|nickname for", re.I)
+SURNAME_RE = re.compile(r"surnames?|family name|patronymic", re.I)
+# Strong notability: keeps a name even if it is also a given name.
+NOTABLE_STRONG_RE = re.compile(
+    r"(National capitals|State capitals|^Countries|Continents|States of the United States|Capital cities"
+    r"|metonyms|Oceans|Seas|Planets|Months|Days of the week|Holidays|Religions|Languages|Deities"
+    r"|Political parties|Companies|Provinces of|Counties of England|^Religion|Christianity|Judaism|Islam|Buddhism|Hinduism)"
+)
+# Weak notability: with a Wikipedia link, keeps a surname (obama, lincoln).
+NOTABLE_WEAK_RE = re.compile(r"^(Cities|Towns|Boroughs|Regions|Rivers|Islands|Mountains|Lakes) in ")
 
 def clean_gloss(g: str) -> str:
     g = re.sub(r"\s+", " ", g).strip()
@@ -78,10 +89,14 @@ def entry_senses(entry):
             if t and 20 <= len(t) <= 160 and "\n" not in t:
                 ex = clean_gloss(t)
                 break
+        cats = [c["name"] if isinstance(c, dict) else str(c) for c in s.get("categories", [])]
         lemma_senses.append({
             "gloss": gloss,
             "tags": sorted(tags & SKIP_SENSE_TAGS),
             "example": ex,
+            "given": bool(any(GIVEN_RE.search(c) for c in cats) or GIVEN_RE.search(gloss)),
+            "surname": bool(any(SURNAME_RE.search(c) for c in cats) or SURNAME_RE.search(gloss)),
+            "notable": 2 if any(NOTABLE_STRONG_RE.search(c) for c in cats) else 1 if any(NOTABLE_WEAK_RE.search(c) for c in cats) else 0,
         })
     return lemma_senses, targets, us_of
 
@@ -168,6 +183,7 @@ def main() -> None:
                 "senses": senses,
                 "ipa": ipa,
                 "ipa_flags": ipa_flags,
+                "wikipedia": bool(e.get("wikipedia")),
             })
     with LEXICON_JSONL.open("w") as out:
         for lemma, entries in lexicon.items():

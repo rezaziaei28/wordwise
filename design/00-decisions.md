@@ -105,3 +105,27 @@ Short architecture-decision records. Newest at the bottom.
 - **Consequences:** New `ProgressState.skipped`; stats and coverage exclude
   skipped words and report their count; the word list has a *skipped*
   filter. Constants live in `domain/pacing.dart` (`PacingConfig`).
+
+## D-011 · Fewer names and abbreviations (tightens D-007)
+
+- **Context:** With the 3.3 threshold the list still carried ~1,350 names
+  and ~300 abbreviations, plus two-letter debris (`ez`, `de`, `st`, `al`).
+- **Decision:**
+  - *People are dropped entirely*: a lemma whose Wiktionary entries are all
+    capitalised and include a given-name sense, or a surname sense without a
+    Wikipedia link plus a place sense, is removed regardless of frequency
+    (taylor, wilson, kennedy, derek). Strong notability — a sense categorised
+    as capital, country, US state, month, holiday, religion, language, … —
+    always keeps a name (washington, christmas, jesus); Wikipedia + place
+    keeps notable surnames (obama, lincoln, hamilton).
+  - *Proper nouns* are detected by capitalisation (all entries capitalised,
+    a `name` entry, name senses ≥ untagged common senses), threshold
+    raised to zipf ≥ 4.0 (≈ top 5K).
+  - *Abbreviations* include all-caps-only entries (nfl, dna, cm); threshold
+    zipf ≥ 4.5 (≈ top 2K).
+  - *One- and two-letter lemmas* are kept only from an explicit allowlist
+    (`SHORT_WORDS`) or as all-caps abbreviations above threshold; Roman
+    numerals, URL debris and `ez`/`ca`/`et` are stop-listed.
+- **Result (2026-09-13 build):** 161 names, 8 abbreviations, 32 short
+  words in the 40K list; 11,851 person names, 6,183 other names, 2,343
+  abbreviations and 328 debris tokens excluded; cut moved to zipf 1.99.

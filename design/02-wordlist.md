@@ -104,10 +104,17 @@ Frequency of a lemma = sum over everything folded into it. A British lemma
 whose US spelling is also a lemma (`favourite`/`favorite`) merges into the US
 one. Headword = US spelling; the British form is kept as a *form*.
 
-Then, **before** cutting: proper nouns and abbreviations below
-`PROPER_MIN_ZIPF` / `ABBREV_MIN_ZIPF` (both 3.3 ≈ rank 15,000) are excluded so
-common vocabulary backfills their slots — see §4.3 and §5. Rank, cut at 40,000,
-band = ⌈rank / 1000⌉.
+Then, **before** cutting (D-007, tightened by D-011):
+
+- *person names* (given names; surnames without Wikipedia + place) are
+  dropped regardless of frequency unless strongly notable;
+- *proper nouns* below `PROPER_MIN_ZIPF` (4.0 ≈ rank 5,000) and
+  *abbreviations* below `ABBREV_MIN_ZIPF` (4.5 ≈ rank 2,000) are excluded;
+- *one- and two-letter lemmas* outside `SHORT_WORDS` (and not all-caps
+  abbreviations), Roman numerals and URL debris are dropped;
+
+so common vocabulary backfills their slots — see §4.3 and §5. Rank, cut at
+40,000, band = ⌈rank / 1000⌉.
 
 Consequences accepted: `united → unite`, `glasses → glass`, `better → good`
 (all listed as forms on the base card). `frank`, `peter`, `bernard` stay
@@ -128,8 +135,9 @@ because they also have common-noun/verb senses — they are not flagged proper.
   ones; if the word has a second POS, the third slot is given to it. One
   example per sense (20–160 chars).
 - Forms: every surface form that folded into the lemma, minus possessives.
-- `is_proper`: all entries are proper nouns. `is_abbrev`: every sense is
-  "Abbreviation/Initialism/Acronym/Clipping of …".
+- `is_proper`: every entry capitalised, a `name` entry, and name senses ≥
+  untagged common senses (david, chicago, russia). `is_abbrev`: every sense
+  is "Abbreviation/Initialism/… of", or every entry is ALL CAPS (nfl, dna).
 
 ### Schema (v1)
 
@@ -213,17 +221,19 @@ Readings:
   the tail. Tatoeba (CC-BY) is the obvious fill — noted for a later
   iteration, not a blocker for the MVP.
 
-### 4.3 Effect of the proper-noun / abbreviation threshold
+### 4.3 Effect of the name / abbreviation rules
 
-| | threshold 0 (keep all, D-005 literal) | threshold 3.3 (built) |
-|---|---|---|
-| proper nouns in list | 8,096 (36 % of band 40; `lundgren`, `souter`, `meagher`) | 1,356 (`obama`, `london`, `houston`, `sinatra`, `gaddafi`, `rowling`) |
-| abbreviations in list | 1,818 (`hss`, `spl`, `stc`, `crm`) | 293 (`mr`, `tv`, `uk`, `usa`, `bbc`, `nba`, `gdp`, `nhs`) |
-| zipf at rank 40,000 | 2.41 | 2.11 |
-| vocabulary words gained | — | ≈ 10,300 |
+| | threshold 0 (keep all, D-005 literal) | 3.3 (D-007) | D-011 (built) |
+|---|---|---|---|
+| proper nouns in list | 8,096 (`lundgren`, `souter`) | 1,356 (`obama`, `taylor`, `derek`) | 161 (`london`, `germany`, `obama`, `january`) |
+| abbreviations in list | 1,818 (`hss`, `spl`) | 293 (`mr`, `nba`, `crm`) | 8 (`tv`, `etc`, `usa`, `eu`, `bbc`, `nfl`, `ft`, `ceo`) |
+| one/two-letter lemmas | — | 166 in the first 6K (`ez`, `de`, `st`, `al`, `ll`) | 32 in total, all real words |
+| zipf at rank 40,000 | 2.41 | 2.11 | 1.99 |
 
-Names that also have a common meaning (`frank`, `peter`, `mark`) are not
-affected by the threshold in either setting.
+Given names are gone as a class (`david`, `james`, `sarah` — 11,851
+person names excluded); places, months, nationalities and notable people
+with a Wikipedia-linked place sense stay. Names that also have a common
+meaning (`frank`, `mark`, `john`) are unaffected by any of this.
 
 ## 5. Open questions
 
