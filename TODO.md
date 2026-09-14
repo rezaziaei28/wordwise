@@ -1,0 +1,5 @@
+- [ ] users should be able to login using google / apple
+- [ ] a configuration checkbox to remove Perfect Nouns (like london, obama)
+- [ ] a server to get save stats about words, progresses, strikes, ... but the app should be able to work offline
+- [ ] about page with info
+- [ ] some people are confused about the UI. Some more hints may help. not sure. check yourself. 
