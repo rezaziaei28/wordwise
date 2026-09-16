@@ -54,3 +54,15 @@ This is a learning setup not a finished thing and I am still testing it and ther
 ## Current status
 
 Still working on it and I am testing this on my own system Ubuntu 26.04 amd64 and if you find any problems open an issue and I will take a look.
+
+## Download
+
+If you do not want to build it yourself you can download the .deb file directly from the repo:
+
+https://github.com/rezaziaei28/wordwise/blob/Linux_version_reza_ziaei/packaging/linux/release/wordwise_0.1.0_amd64.deb
+
+Then install it with:
+
+    sudo dpkg -i wordwise_0.1.0_amd64.deb
+    sudo apt install -f
+
